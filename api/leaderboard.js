@@ -1,56 +1,66 @@
 export default async function handler(req, res) {
-  const API_KEY = process.env.AIRTABLE_API_KEY;
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Hantera preflight
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  // Tillåt bara GET
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const BASE_ID = "appPVgKKVrm0scfIi";
   const TABLE_ID = "tblQUvfLh6unvSVWW";
 
-  if (!API_KEY) {
-    return res.status(500).json({
-      error: "AIRTABLE_API_KEY saknas i Vercel Environment Variables"
-    });
+  if (!AIRTABLE_API_KEY) {
+    return res.status(500).json({ error: "Missing AIRTABLE_API_KEY in environment variables" });
   }
 
   try {
-    let allRecords = [];
-    let offset = "";
+    const airtableUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
 
-    do {
-      const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`);
-      url.searchParams.set("maxRecords", "100");
-
-      if (offset) {
-        url.searchParams.set("offset", offset);
-      }
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${API_KEY}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error: "Fel från Airtable",
-          details: data
-        });
-      }
-
-      allRecords = allRecords.concat(data.records || []);
-      offset = data.offset || "";
-    } while (offset);
-
-    const sortedRecords = allRecords.sort((a, b) => {
-      const aVal = Number(a.fields?.["Totalpoäng"] || 0);
-      const bVal = Number(b.fields?.["Totalpoäng"] || 0);
-      return bVal - aVal;
+    const airtableRes = await fetch(airtableUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
     });
 
-    return res.status(200).json(sortedRecords);
-  } catch (err) {
+    const rawText = await airtableRes.text();
+
+    if (!airtableRes.ok) {
+      return res.status(airtableRes.status).json({
+        error: "Airtable request failed",
+        status: airtableRes.status,
+        details: rawText,
+      });
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseError) {
+      return res.status(500).json({
+        error: "Could not parse Airtable response as JSON",
+        details: rawText,
+      });
+    }
+
+    // Skicka vidare exakt records-format
+    return res.status(200).json({
+      records: data.records || [],
+    });
+  } catch (error) {
     return res.status(500).json({
-      error: "Fel vid hämtning från Airtable",
-      details: String(err)
+      error: "Server error while fetching leaderboard",
+      details: error.message,
     });
   }
 }
