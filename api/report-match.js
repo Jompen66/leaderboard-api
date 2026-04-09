@@ -127,12 +127,8 @@ export default async function handler(req, res) {
     }
 
     const fieldsToWrite = {
-      "Bana": bana,
-      "Speldatum": speldatum,
-      "Resultattyp": resultattyp,
       "Resultattext": resultattext,
-      "Status": "Spelad",
-    };
+        };
 
     const updatedParticipants = await Promise.all(
       participantRecords.map((record) =>
