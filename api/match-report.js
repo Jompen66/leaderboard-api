@@ -1,9 +1,14 @@
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const BASE_ID = "appPVgKKVrm0scfIi";
 
-// Ändra dessa om dina tabellnamn heter något annat i Airtable
 const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlT";
 const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
+
+function setCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "https://elisha42095.softr.app");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
 
 async function fetchAllRecords(tableName, filterFormula = "") {
   let allRecords = [];
@@ -11,7 +16,6 @@ async function fetchAllRecords(tableName, filterFormula = "") {
 
   do {
     const params = new URLSearchParams();
-
     params.append("cellFormat", "string");
     params.append("timeZone", "Europe/Stockholm");
     params.append("userLocale", "sv");
@@ -53,6 +57,12 @@ function val(value) {
 }
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
