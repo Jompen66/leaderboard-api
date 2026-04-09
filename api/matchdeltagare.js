@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const BASE_ID = "appPVgKKVrm0scfIi";
-  const TABLE_ID = "tbl07qgCJtS50hLsr";
+  const TABLE_ID = "tblvawwsDpRhpRBDp";
 
   if (!AIRTABLE_API_KEY) {
     return res.status(500).json({
