@@ -50,6 +50,32 @@ async function fetchAllRecords(tableName, filterFormula = "") {
   return allRecords;
 }
 
+async function updateRecord(tableName, recordId, fields) {
+  const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(tableName)}/${recordId}`;
+
+  const payload = {
+    fields,
+    typecast: true,
+  };
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Airtable update error (${tableName}/${recordId}): ${response.status} ${text}`);
+  }
+
+  return JSON.parse(text);
+}
+
 export default async function handler(req, res) {
   setCorsHeaders(res);
 
@@ -75,6 +101,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Hämta match i Matches
     const matchFilter = `RECORD_ID()='${matchId}'`;
     const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
 
@@ -82,6 +109,9 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "Match not found" });
     }
 
+    const matchRecord = matchRecords[0];
+
+    // Hämta båda raderna i Matchdeltagare
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
@@ -92,12 +122,40 @@ export default async function handler(req, res) {
       });
     }
 
+    // Skriv till input-fälten i Matchdeltagare
+    const participantFieldsToWrite = {
+      "Bana input": bana,
+      "Speldatum input": speldatum,
+      "Resultattyp input": resultattyp,
+      "Resultattext input": resultattext,
+    };
+
+    // Skriv till redigerbara fält i Matches
+    const matchFieldsToWrite = {
+      "Bana": bana,
+      "Speldatum": speldatum,
+      "Resultattyp": resultattyp,
+      "Resultattext": resultattext,
+    };
+
+    const updatedParticipants = await Promise.all(
+      participantRecords.map((record) =>
+        updateRecord(MATCHDELTAGARE_TABLE_NAME, record.id, participantFieldsToWrite)
+      )
+    );
+
+    const updatedMatch = await updateRecord(
+      MATCHES_TABLE_NAME,
+      matchRecord.id,
+      matchFieldsToWrite
+    );
+
     return res.status(200).json({
       ok: true,
-      message: "POST works, fetch works, but no Airtable fields updated yet",
+      message: "Match reported successfully",
       matchId,
-      participantIdsFound: participantRecords.map((r) => r.id),
-      submittedValues: { bana, speldatum, resultattyp, resultattext }
+      updatedMatchId: updatedMatch.id,
+      updatedParticipantIds: updatedParticipants.map((r) => r.id),
     });
   } catch (error) {
     console.error("report-match error:", error);
