@@ -2,8 +2,8 @@ const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const BASE_ID = "appPVgKKVrm0scfIi";
 
 // Ändra dessa om dina tabellnamn heter något annat i Airtable
-const MATCHES_TABLE_NAME = "Matches";
-const MATCHDELTAGARE_TABLE_NAME = "Matchdeltagare";
+const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlT";
+const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
 
 async function fetchAllRecords(tableName, filterFormula = "") {
   let allRecords = [];
