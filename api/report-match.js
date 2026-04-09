@@ -5,7 +5,7 @@ const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlT";
 const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
 
 function setCorsHeaders(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://www.rutgercup.se");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -101,7 +101,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Hämta match i Matches
     const matchFilter = `RECORD_ID()='${matchId}'`;
     const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
 
@@ -111,7 +110,6 @@ export default async function handler(req, res) {
 
     const matchRecord = matchRecords[0];
 
-    // Hämta alla rader i Matchdeltagare med samma Match Id
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
@@ -122,7 +120,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Skriv till input-fälten i Matchdeltagare
     const participantFieldsToWrite = {
       "Bana input": bana,
       "Speldatum input": speldatum,
@@ -130,7 +127,6 @@ export default async function handler(req, res) {
       "Resultattext input": resultattext,
     };
 
-    // Skriv till redigerbara fält i Matches
     const matchFieldsToWrite = {
       "Bana": bana,
       "Speldatum": speldatum,
