@@ -4,7 +4,7 @@ const BASE_ID = "appPVgKKVrm0scfIi";
 const SAMMANDRAG_RESULTAT_TABLE_ID = "tblOQQYoV7eksJQWF";
 
 function setCorsHeaders(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://rutgercup.se");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
