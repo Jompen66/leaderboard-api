@@ -4,6 +4,12 @@ const BASE_ID = "appPVgKKVrm0scfIi";
 const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlT";
 const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
 
+function setCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "https://elisha42095.softr.app");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 async function fetchAllRecords(tableName, filterFormula = "") {
   let allRecords = [];
   let offset = null;
@@ -64,6 +70,12 @@ async function updateRecord(tableName, recordId, fields) {
 }
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -82,7 +94,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // 1) Hämta matchen
     const matchFilter = `RECORD_ID()='${matchId}'`;
     const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
 
@@ -93,13 +104,11 @@ export default async function handler(req, res) {
     const matchRecord = matchRecords[0];
     const matchFields = matchRecord.fields || {};
 
-    // Frivillig säkerhet: rapportera inte om redan spelad
     const currentStatus = matchFields["Status"];
     if (currentStatus === "Spelad") {
       return res.status(400).json({ error: "Match is already reported as played" });
     }
 
-    // 2) Hämta båda deltagarraderna
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
@@ -118,14 +127,12 @@ export default async function handler(req, res) {
       "Status": "Spelad",
     };
 
-    // 3) Uppdatera båda Matchdeltagare-raderna
     const updatedParticipants = await Promise.all(
       participantRecords.map((record) =>
         updateRecord(MATCHDELTAGARE_TABLE_NAME, record.id, fieldsToWrite)
       )
     );
 
-    // 4) Uppdatera raden i Matches
     const updatedMatch = await updateRecord(MATCHES_TABLE_NAME, matchRecord.id, fieldsToWrite);
 
     return res.status(200).json({
