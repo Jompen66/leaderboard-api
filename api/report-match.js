@@ -1,7 +1,7 @@
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const BASE_ID = "appPVgKKVrm0scfIi";
 
-const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlT";
+const MATCHES_TABLE_NAME = "Matctbl31EaibzeDRmDlThes";
 const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
 
 function setCorsHeaders(res) {
@@ -52,21 +52,29 @@ async function fetchAllRecords(tableName, filterFormula = "") {
 async function updateRecord(tableName, recordId, fields) {
   const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(tableName)}/${recordId}`;
 
+  const payload = {
+    fields,
+    typecast: true
+  };
+
   const response = await fetch(url, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${AIRTABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ fields }),
+    body: JSON.stringify(payload),
   });
 
+  const responseText = await response.text();
+
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Airtable update error (${tableName}/${recordId}): ${response.status} ${errorText}`);
+    throw new Error(
+      `Airtable update error (${tableName}/${recordId}): ${response.status} ${responseText}`
+    );
   }
 
-  return response.json();
+  return JSON.parse(responseText);
 }
 
 export default async function handler(req, res) {
@@ -104,8 +112,7 @@ export default async function handler(req, res) {
     const matchRecord = matchRecords[0];
     const matchFields = matchRecord.fields || {};
 
-    const currentStatus = matchFields["Status"];
-    if (currentStatus === "Spelad") {
+    if (matchFields["Status"] === "Spelad") {
       return res.status(400).json({ error: "Match is already reported as played" });
     }
 
