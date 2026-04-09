@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing eventId" });
     }
 
-    const filterFormula = `{Event}='${eventId}'`;
+const filterFormula = `FIND('${eventId}', ARRAYJOIN({Event}))`;
     const records = await fetchAllRecords(SAMMANDRAG_RESULTAT_TABLE_ID, filterFormula);
 
     const results = records.map((record) => {
@@ -111,4 +111,4 @@ export default async function handler(req, res) {
       details: error.message,
     });
   }
-}
+}	
