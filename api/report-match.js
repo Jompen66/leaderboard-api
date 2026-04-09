@@ -55,7 +55,7 @@ async function updateRecord(tableName, recordId, fields) {
 
   const payload = {
     fields,
-    typecast: true
+    typecast: true,
   };
 
   const response = await fetch(url, {
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 1. Hämta match
+    // Hämta match
     const matchFilter = `RECORD_ID()='${matchId}'`;
     const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
 
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Match is already reported as played" });
     }
 
-    // 2. Hämta deltagare
+    // Hämta deltagarrader bara för kontroll
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
@@ -127,30 +127,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Fält att skriva
-    const participantFieldsToWrite = {
-      "Bana input": bana,
-      "Speldatum Input": speldatum,
-      "Resultattyp input": resultattyp,
-      "Resultattext Input": resultattext
-    };
-
+    // Uppdatera endast Matches tills vidare
     const matchFieldsToWrite = {
       "Bana": bana,
       "Speldatum": speldatum,
       "Resultattyp": resultattyp,
       "Resultattext": resultattext,
-      "Status": "Spelad"
+      "Status": "Spelad",
     };
 
-    // 4. Uppdatera Matchdeltagare (input-fält)
-    const updatedParticipants = await Promise.all(
-      participantRecords.map((record) =>
-        updateRecord(MATCHDELTAGARE_TABLE_NAME, record.id, participantFieldsToWrite)
-      )
-    );
-
-    // 5. Uppdatera Matches (riktiga fält)
     const updatedMatch = await updateRecord(
       MATCHES_TABLE_NAME,
       matchRecord.id,
@@ -159,12 +144,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      message: "Match reported successfully",
+      message: "Match updated in Matches only",
       matchId,
       updatedMatchId: updatedMatch.id,
-      updatedParticipantIds: updatedParticipants.map((r) => r.id),
+      participantIdsFound: participantRecords.map((r) => r.id),
     });
-
   } catch (error) {
     console.error("report-match error:", error);
 
