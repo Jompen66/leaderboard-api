@@ -89,15 +89,18 @@ const filterFormula = `{Event Record ID}='${eventId}'`;
       };
     });
 
-    results.sort((a, b) => {
-      const pa = Number(a.placering ?? 9999);
-      const pb = Number(b.placering ?? 9999);
-      if (pa !== pb) return pa - pb;
+   results.sort((a, b) => {
+  const sa = Number(a.score ?? 9999);
+  const sb = Number(b.score ?? 9999);
 
-      const sa = Number(a.score ?? 9999);
-      const sb = Number(b.score ?? 9999);
-      return sa - sb;
-    });
+  // lägsta score först
+  if (sa !== sb) return sa - sb;
+
+  // tie-break: högst poäng först
+  const pa = Number(b.poangSammandrag ?? 0);
+  const pb = Number(a.poangSammandrag ?? 0);
+  return pa - pb;
+});
 
     return res.status(200).json({
       ok: true,
