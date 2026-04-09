@@ -1,7 +1,7 @@
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const BASE_ID = "appPVgKKVrm0scfIi";
 
-const MATCHES_TABLE_NAME = "Matctbl31EaibzeDRmDlThes";
+const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlThes";
 const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
 
 function setCorsHeaders(res) {
