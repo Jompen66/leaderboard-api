@@ -111,13 +111,13 @@ export default async function handler(req, res) {
 
     const matchRecord = matchRecords[0];
 
-    // Hämta båda raderna i Matchdeltagare
+    // Hämta alla rader i Matchdeltagare med samma Match Id
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
-    if (participantRecords.length !== 2) {
+    if (![2, 4].includes(participantRecords.length)) {
       return res.status(400).json({
-        error: "Expected exactly 2 participant rows",
+        error: "Expected 2 or 4 participant rows",
         found: participantRecords.length,
       });
     }
@@ -154,6 +154,7 @@ export default async function handler(req, res) {
       ok: true,
       message: "Match reported successfully",
       matchId,
+      participantCount: participantRecords.length,
       updatedMatchId: updatedMatch.id,
       updatedParticipantIds: updatedParticipants.map((r) => r.id),
     });
