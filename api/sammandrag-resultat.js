@@ -53,7 +53,7 @@ function first(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function toNumber(value, fallback = 9999) {
+function toNumber(value, fallback = 0) {
   if (value === null || value === undefined || value === "") return fallback;
   const normalized = String(value).replace(",", ".");
   const num = Number(normalized);
@@ -96,12 +96,12 @@ export default async function handler(req, res) {
       };
     });
 
-    // Sortera: lägsta score först, sedan högst poäng
+    // Sortera: högsta score först, sedan högsta poäng sammandrag
     results.sort((a, b) => {
-      const sa = toNumber(a.score);
-      const sb = toNumber(b.score);
+      const sa = toNumber(a.score, -9999);
+      const sb = toNumber(b.score, -9999);
 
-      if (sa !== sb) return sa - sb;
+      if (sa !== sb) return sb - sa;
 
       const pa = toNumber(a.poangSammandrag, 0);
       const pb = toNumber(b.poangSammandrag, 0);
@@ -109,13 +109,13 @@ export default async function handler(req, res) {
       return pb - pa;
     });
 
-    // Beräkna ny placering baserat på sorteringen
+    // Beräkna placering efter sorteringen
     // Delad placering vid samma score
     let lastScore = null;
     let lastPlacement = 0;
 
     results.forEach((item, index) => {
-      const score = toNumber(item.score);
+      const score = toNumber(item.score, -9999);
 
       if (score === lastScore) {
         item.placering = lastPlacement;
