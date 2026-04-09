@@ -12,6 +12,8 @@ async function fetchAllRecords(tableName, filterFormula = "") {
   do {
     const params = new URLSearchParams();
 
+    params.append("cellFormat", "string");
+
     if (filterFormula) {
       params.append("filterByFormula", filterFormula);
     }
@@ -97,7 +99,7 @@ export default async function handler(req, res) {
       };
     });
 
-    // Sortera gärna A före B
+    // Sortera A före B
     participants.sort((a, b) => {
       if (a.sida === "A" && b.sida === "B") return -1;
       if (a.sida === "B" && b.sida === "A") return 1;
