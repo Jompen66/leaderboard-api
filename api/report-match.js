@@ -5,7 +5,7 @@ const MATCHES_TABLE_NAME = "tbl31EaibzeDRmDlT";
 const MATCHDELTAGARE_TABLE_NAME = "tblvawwsDpRhpRBDp";
 
 function setCorsHeaders(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://elisha42095.softr.app");
+  res.setHeader("Access-Control-Allow-Origin", "https://www.rutgercup.se");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
