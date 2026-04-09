@@ -36,12 +36,13 @@ async function fetchAllRecords(tableName, filterFormula = "") {
       },
     });
 
+    const text = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Airtable fetch error (${tableName}): ${response.status} ${errorText}`);
+      throw new Error(`Airtable fetch error (${tableName}): ${response.status} ${text}`);
     }
 
-    const data = await response.json();
+    const data = JSON.parse(text);
     allRecords = allRecords.concat(data.records || []);
     offset = data.offset;
   } while (offset);
@@ -66,15 +67,13 @@ async function updateRecord(tableName, recordId, fields) {
     body: JSON.stringify(payload),
   });
 
-  const responseText = await response.text();
+  const text = await response.text();
 
   if (!response.ok) {
-    throw new Error(
-      `Airtable update error (${tableName}/${recordId}): ${response.status} ${responseText}`
-    );
+    throw new Error(`Airtable update error (${tableName}/${recordId}): ${response.status} ${text}`);
   }
 
-  return JSON.parse(responseText);
+  return JSON.parse(text);
 }
 
 export default async function handler(req, res) {
@@ -102,6 +101,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // 1. Hämta match
     const matchFilter = `RECORD_ID()='${matchId}'`;
     const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
 
@@ -116,6 +116,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Match is already reported as played" });
     }
 
+    // 2. Hämta deltagare
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
@@ -126,17 +127,35 @@ export default async function handler(req, res) {
       });
     }
 
-    const fieldsToWrite = {
-      "Resultattext": resultattext,
-        };
+    // 3. Fält att skriva
+    const participantFieldsToWrite = {
+      "Bana input": bana,
+      "Speldatum Input": speldatum,
+      "Resultattyp input": resultattyp,
+      "Resultattext Input": resultattext
+    };
 
+    const matchFieldsToWrite = {
+      "Bana": bana,
+      "Speldatum": speldatum,
+      "Resultattyp": resultattyp,
+      "Resultattext": resultattext,
+      "Status": "Spelad"
+    };
+
+    // 4. Uppdatera Matchdeltagare (input-fält)
     const updatedParticipants = await Promise.all(
       participantRecords.map((record) =>
-        updateRecord(MATCHDELTAGARE_TABLE_NAME, record.id, fieldsToWrite)
+        updateRecord(MATCHDELTAGARE_TABLE_NAME, record.id, participantFieldsToWrite)
       )
     );
 
-    const updatedMatch = await updateRecord(MATCHES_TABLE_NAME, matchRecord.id, fieldsToWrite);
+    // 5. Uppdatera Matches (riktiga fält)
+    const updatedMatch = await updateRecord(
+      MATCHES_TABLE_NAME,
+      matchRecord.id,
+      matchFieldsToWrite
+    );
 
     return res.status(200).json({
       ok: true,
@@ -145,8 +164,10 @@ export default async function handler(req, res) {
       updatedMatchId: updatedMatch.id,
       updatedParticipantIds: updatedParticipants.map((r) => r.id),
     });
+
   } catch (error) {
     console.error("report-match error:", error);
+
     return res.status(500).json({
       error: "Internal server error",
       details: error.message,
