@@ -13,6 +13,8 @@ async function fetchAllRecords(tableName, filterFormula = "") {
     const params = new URLSearchParams();
 
     params.append("cellFormat", "string");
+    params.append("timeZone", "Europe/Stockholm");
+    params.append("userLocale", "sv");
 
     if (filterFormula) {
       params.append("filterByFormula", filterFormula);
@@ -62,7 +64,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing matchId" });
     }
 
-    // 1) Hämta matchen från Matches via Airtables record id
     const matchFilter = `RECORD_ID()='${matchId}'`;
     const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
 
@@ -73,7 +74,6 @@ export default async function handler(req, res) {
     const matchRecord = matchRecords[0];
     const m = matchRecord.fields || {};
 
-    // 2) Hämta båda raderna i Matchdeltagare som hör till samma match
     const participantsFilter = `{Match Id}='${matchId}'`;
     const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
 
@@ -99,7 +99,6 @@ export default async function handler(req, res) {
       };
     });
 
-    // Sortera A före B
     participants.sort((a, b) => {
       if (a.sida === "A" && b.sida === "B") return -1;
       if (a.sida === "B" && b.sida === "A") return 1;
