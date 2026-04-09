@@ -53,6 +53,13 @@ function first(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function toNumber(value, fallback = 9999) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const normalized = String(value).replace(",", ".");
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : fallback;
+}
+
 export default async function handler(req, res) {
   setCorsHeaders(res);
 
@@ -71,7 +78,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing eventId" });
     }
 
-const filterFormula = `{Event Record ID}='${eventId}'`;
+    const filterFormula = `{Event Record ID}='${eventId}'`;
     const records = await fetchAllRecords(SAMMANDRAG_RESULTAT_TABLE_ID, filterFormula);
 
     const results = records.map((record) => {
@@ -82,25 +89,42 @@ const filterFormula = `{Event Record ID}='${eventId}'`;
         event: first(f["Event"]),
         spelare: first(f["Spelare"]) || "",
         spelform: first(f["Spelform"]) || "",
-        placering: first(f["Placering"]),
+        originalPlacering: first(f["Placering"]),
         score: first(f["Score"]),
         poangSammandrag: first(f["Poäng Sammandrag"]),
         bana: first(f["Bana (från Event)"]) || "",
       };
     });
 
-   results.sort((a, b) => {
-  const sa = Number(a.score ?? 9999);
-  const sb = Number(b.score ?? 9999);
+    // Sortera: lägsta score först, sedan högst poäng
+    results.sort((a, b) => {
+      const sa = toNumber(a.score);
+      const sb = toNumber(b.score);
 
-  // lägsta score först
-  if (sa !== sb) return sa - sb;
+      if (sa !== sb) return sa - sb;
 
-  // tie-break: högst poäng först
-  const pa = Number(b.poangSammandrag ?? 0);
-  const pb = Number(a.poangSammandrag ?? 0);
-  return pa - pb;
-});
+      const pa = toNumber(a.poangSammandrag, 0);
+      const pb = toNumber(b.poangSammandrag, 0);
+
+      return pb - pa;
+    });
+
+    // Beräkna ny placering baserat på sorteringen
+    // Delad placering vid samma score
+    let lastScore = null;
+    let lastPlacement = 0;
+
+    results.forEach((item, index) => {
+      const score = toNumber(item.score);
+
+      if (score === lastScore) {
+        item.placering = lastPlacement;
+      } else {
+        item.placering = index + 1;
+        lastPlacement = item.placering;
+        lastScore = score;
+      }
+    });
 
     return res.status(200).json({
       ok: true,
@@ -114,4 +138,4 @@ const filterFormula = `{Event Record ID}='${eventId}'`;
       details: error.message,
     });
   }
-}	
+}
