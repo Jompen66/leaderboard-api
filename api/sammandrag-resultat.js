@@ -53,13 +53,6 @@ function first(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function toNumber(value, fallback = 0) {
-  if (value === null || value === undefined || value === "") return fallback;
-  const normalized = String(value).replace(",", ".");
-  const num = Number(normalized);
-  return Number.isFinite(num) ? num : fallback;
-}
-
 export default async function handler(req, res) {
   setCorsHeaders(res);
 
@@ -89,41 +82,25 @@ export default async function handler(req, res) {
         event: first(f["Event"]),
         spelare: first(f["Spelare"]) || "",
         spelform: first(f["Spelform"]) || "",
-        originalPlacering: first(f["Placering"]),
+        placering: first(f["Placering"]),
         score: first(f["Score"]),
         poangSammandrag: first(f["Poäng Sammandrag"]),
         bana: first(f["Bana (från Event)"]) || "",
       };
     });
 
-    // Sortera: högsta score först, sedan högsta poäng sammandrag
+    // 🔥 NY SORTERING (RÄTT LOGIK)
     results.sort((a, b) => {
-      const sa = toNumber(a.score, -9999);
-      const sb = toNumber(b.score, -9999);
+      const pa = Number(a.poangSammandrag ?? -1);
+      const pb = Number(b.poangSammandrag ?? -1);
 
-      if (sa !== sb) return sb - sa;
+      // högst poäng först
+      if (pb !== pa) return pb - pa;
 
-      const pa = toNumber(a.poangSammandrag, 0);
-      const pb = toNumber(b.poangSammandrag, 0);
-
-      return pb - pa;
-    });
-
-    // Beräkna placering efter sorteringen
-    // Delad placering vid samma score
-    let lastScore = null;
-    let lastPlacement = 0;
-
-    results.forEach((item, index) => {
-      const score = toNumber(item.score, -9999);
-
-      if (score === lastScore) {
-        item.placering = lastPlacement;
-      } else {
-        item.placering = index + 1;
-        lastPlacement = item.placering;
-        lastScore = score;
-      }
+      // tie-break: lägst placering först
+      const pla = Number(a.placering ?? 999);
+      const plb = Number(b.placering ?? 999);
+      return pla - plb;
     });
 
     return res.status(200).json({
