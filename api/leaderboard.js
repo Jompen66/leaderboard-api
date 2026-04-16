@@ -4,6 +4,9 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // 🔥 CACHE (NY)
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+
   // Hantera preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -23,7 +26,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const airtableUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
+    // 🔥 BEGRÄNSA FÄLT (NY)
+    const fields = [
+      "Spelare",
+      "Totalpoäng",
+      "Poäng Sammandrag",
+      "Bonuspoäng"
+    ];
+
+    const params = new URLSearchParams();
+    fields.forEach(f => params.append("fields[]", f));
+
+    const airtableUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`;
 
     const airtableRes = await fetch(airtableUrl, {
       method: "GET",
@@ -53,10 +67,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Skicka vidare exakt records-format
     return res.status(200).json({
       records: data.records || [],
     });
+
   } catch (error) {
     return res.status(500).json({
       error: "Server error while fetching leaderboard",
