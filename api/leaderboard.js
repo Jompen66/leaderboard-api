@@ -4,15 +4,15 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // 🔥 CACHE (NY)
+  // Cache
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
 
-  // Hantera preflight
+  // OPTIONS
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // Tillåt bara GET
+  // Only GET
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -22,23 +22,24 @@ export default async function handler(req, res) {
   const TABLE_ID = "tblQUvfLh6unvSVWW";
 
   if (!AIRTABLE_API_KEY) {
-    return res.status(500).json({ error: "Missing AIRTABLE_API_KEY in environment variables" });
+    return res.status(500).json({
+      error: "Missing AIRTABLE_API_KEY in environment variables",
+    });
   }
 
   try {
-    // 🔥 BEGRÄNSA FÄLT (NY)
     const fields = [
       "Spelare",
       "Totalpoäng",
       "Poäng Sammandrag",
-      "Bonuspoäng"
+      "Bonuspoäng",
       "Profilbild"
     ];
 
     const params = new URLSearchParams();
-    fields.forEach(f => params.append("fields[]", f));
+    fields.forEach((f) => params.append("fields[]", f));
 
-    const airtableUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params}`;
+    const airtableUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params.toString()}`;
 
     const airtableRes = await fetch(airtableUrl, {
       method: "GET",
@@ -71,7 +72,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       records: data.records || [],
     });
-
   } catch (error) {
     return res.status(500).json({
       error: "Server error while fetching leaderboard",
