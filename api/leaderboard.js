@@ -7,12 +7,12 @@ export default async function handler(req, res) {
   // Cache
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
 
-  // OPTIONS
+  // Hantera preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // Only GET
+  // Tillåt bara GET
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -22,24 +22,17 @@ export default async function handler(req, res) {
   const TABLE_ID = "tblQUvfLh6unvSVWW";
 
   if (!AIRTABLE_API_KEY) {
-    return res.status(500).json({
-      error: "Missing AIRTABLE_API_KEY in environment variables",
-    });
+    return res.status(500).json({ error: "Missing AIRTABLE_API_KEY in environment variables" });
   }
 
   try {
-    const fields = [
-      "Spelare",
-      "Totalpoäng",
-      "Poäng Sammandrag",
-      "Bonuspoäng",
-      "Profilbild"
-    ];
-
-    const params = new URLSearchParams();
-    fields.forEach((f) => params.append("fields[]", f));
-
-    const airtableUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?${params.toString()}`;
+    const airtableUrl =
+      `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}` +
+      `?fields[]=Spelare` +
+      `&fields[]=Totalpoäng` +
+      `&fields[]=Poäng Sammandrag` +
+      `&fields[]=Bonuspoäng` +
+      `&fields[]=Profilbild`;
 
     const airtableRes = await fetch(airtableUrl, {
       method: "GET",
