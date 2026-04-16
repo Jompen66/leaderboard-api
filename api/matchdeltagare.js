@@ -2,6 +2,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -22,11 +23,47 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { playerId, status, matchId } = req.query;
+
+    const filters = [];
+
+    if (playerId) filters.push(`FIND('${playerId}', ARRAYJOIN({Spelare}))`);
+    if (status) filters.push(`{Status}='${status}'`);
+    if (matchId) filters.push(`{Match Id}='${matchId}'`);
+
+    const formula = filters.length ? `AND(${filters.join(",")})` : "";
+
+    const fields = [
+      "Match Id",
+      "Spelare",
+      "Sida",
+      "Status",
+      "Deadline",
+      "Speldatum",
+      "Bana",
+      "Resultattext",
+      "Resultattyp",
+      "Matchtyp",
+      "Matchvisning",
+      "Primärfält",
+      "Sida A namn",
+      "Sida B namn"
+    ];
+
     let allRecords = [];
     let offset = "";
 
     do {
       const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`);
+
+      if (formula) {
+        url.searchParams.set("filterByFormula", formula);
+      }
+
+      fields.forEach((field) => {
+        url.searchParams.append("fields[]", field);
+      });
+
       if (offset) {
         url.searchParams.set("offset", offset);
       }
@@ -45,7 +82,8 @@ export default async function handler(req, res) {
         return res.status(airtableRes.status).json({
           error: "Airtable request failed",
           status: airtableRes.status,
-          details: rawText
+          details: rawText,
+          formula
         });
       }
 
