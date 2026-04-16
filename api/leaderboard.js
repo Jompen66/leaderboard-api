@@ -32,7 +32,8 @@ export default async function handler(req, res) {
       `&fields[]=Totalpoäng` +
       `&fields[]=Poäng Sammandrag` +
       `&fields[]=Bonuspoäng` +
-      `&fields[]=Antal Sammandrag` +      
+      `&fields[]=Antal Sammandrag` +
+      `&fields[]=Matchpoäng Total` +
       `&fields[]=Profilbild`;
 
     const airtableRes = await fetch(airtableUrl, {
