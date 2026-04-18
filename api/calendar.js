@@ -26,7 +26,6 @@ export default async function handler(req, res) {
     const fields = [
       "Datum",
       "Bana",
-      "Signaturtävling",
       "Namn",
       "Titel",
       "Event",
