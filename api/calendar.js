@@ -2,6 +2,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -22,11 +23,27 @@ export default async function handler(req, res) {
   }
 
   try {
+    const fields = [
+      "Datum",
+      "Bana",
+      "Signaturtävling",
+      "Namn",
+      "Titel",
+      "Event",
+      "Spelform",
+      "Beskrivning"
+    ];
+
     let allRecords = [];
     let offset = "";
 
     do {
       const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`);
+
+      fields.forEach((field) => {
+        url.searchParams.append("fields[]", field);
+      });
+
       if (offset) {
         url.searchParams.set("offset", offset);
       }
