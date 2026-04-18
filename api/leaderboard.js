@@ -4,15 +4,15 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Cache
-  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+  // ❗ TILLFÄLLIGT: ingen cache
+  res.setHeader("Cache-Control", "no-store");
 
-  // Hantera preflight
+  // Preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // Tillåt bara GET
+  // Only GET
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -22,7 +22,9 @@ export default async function handler(req, res) {
   const TABLE_ID = "tblQUvfLh6unvSVWW";
 
   if (!AIRTABLE_API_KEY) {
-    return res.status(500).json({ error: "Missing AIRTABLE_API_KEY in environment variables" });
+    return res.status(500).json({
+      error: "Missing AIRTABLE_API_KEY in environment variables",
+    });
   }
 
   try {
@@ -32,8 +34,8 @@ export default async function handler(req, res) {
       `&fields[]=Totalpoäng` +
       `&fields[]=Poäng Sammandrag` +
       `&fields[]=Bonuspoäng` +
-      `&fields[]=Antal Sammandrag` +
       `&fields[]=Matchpoäng Total` +
+      `&fields[]=Antal Sammandrag` +
       `&fields[]=Profilbild`;
 
     const airtableRes = await fetch(airtableUrl, {
@@ -67,6 +69,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       records: data.records || [],
     });
+
   } catch (error) {
     return res.status(500).json({
       error: "Server error while fetching leaderboard",
