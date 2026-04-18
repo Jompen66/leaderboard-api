@@ -25,8 +25,7 @@ export default async function handler(req, res) {
   try {
     const fields = [
       "Datum",
-      "Bana",
-      "Signarturtävlingtext"
+      "Bana"
     ];
 
     let allRecords = [];
