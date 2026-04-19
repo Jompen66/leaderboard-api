@@ -62,7 +62,7 @@ function val(value) {
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
-  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+  res.setHeader("Cache-Control", "no-store");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
