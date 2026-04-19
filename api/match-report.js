@@ -10,7 +10,7 @@ function setCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-async function fetchAllRecords(tableName, filterFormula = "") {
+async function fetchAllRecords(tableName, filterFormula = "", fields = []) {
   let allRecords = [];
   let offset = null;
 
@@ -23,6 +23,10 @@ async function fetchAllRecords(tableName, filterFormula = "") {
     if (filterFormula) {
       params.append("filterByFormula", filterFormula);
     }
+
+    fields.forEach((field) => {
+      params.append("fields[]", field);
+    });
 
     if (offset) {
       params.append("offset", offset);
@@ -58,6 +62,7 @@ function val(value) {
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -74,8 +79,43 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing matchId" });
     }
 
+    const matchFields = [
+      "Record ID",
+      "Match",
+      "Matchtyp",
+      "Sida A namn",
+      "Sida B namn",
+      "Deadline",
+      "Status",
+      "Bana",
+      "Speldatum",
+      "Resultattyp",
+      "Resultattext",
+      "Visningsnamn",
+      "Schema-info",
+      "Resultat-info"
+    ];
+
+    const participantFields = [
+      "Record Id",
+      "Match Id",
+      "Match",
+      "Spelare",
+      "Sida",
+      "Status",
+      "Deadline",
+      "Matchtyp",
+      "Bana",
+      "Speldatum",
+      "Resultattyp",
+      "Resultattext",
+      "Sida A namn",
+      "Sida B namn",
+      "Primärfält"
+    ];
+
     const matchFilter = `RECORD_ID()='${matchId}'`;
-    const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter);
+    const matchRecords = await fetchAllRecords(MATCHES_TABLE_NAME, matchFilter, matchFields);
 
     if (!matchRecords.length) {
       return res.status(404).json({ error: "Match not found" });
@@ -85,7 +125,11 @@ export default async function handler(req, res) {
     const m = matchRecord.fields || {};
 
     const participantsFilter = `{Match Id}='${matchId}'`;
-    const participantRecords = await fetchAllRecords(MATCHDELTAGARE_TABLE_NAME, participantsFilter);
+    const participantRecords = await fetchAllRecords(
+      MATCHDELTAGARE_TABLE_NAME,
+      participantsFilter,
+      participantFields
+    );
 
     const participants = participantRecords.map((record) => {
       const f = record.fields || {};
