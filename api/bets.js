@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 
     if (playerId) {
       filters.push(
-        `OR({Spelare Record ID}='${playerId}', {Förlorare Record ID}='${playerId}')`
+        `OR({Spelare Record Id}='${playerId}', {Förlorare Record Id}='${playerId}')`
       );
     }
 
@@ -90,8 +90,8 @@ export default async function handler(req, res) {
       "Bett",
       "Spelare",
       "Förlorare",
-      "Spelare Record ID",
-      "Förlorare Record ID",
+      "Spelare Record Id",
+      "Förlorare Record Id",
       "Datum",
       "Utfall",
       "Beskrivning",
