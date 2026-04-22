@@ -75,7 +75,9 @@ export default async function handler(req, res) {
     const filters = [];
 
     if (playerId) {
-      filters.push(`FIND('${playerId}', ARRAYJOIN({Spelare}))`);
+      filters.push(
+        `OR({Spelare Record ID}='${playerId}', {Förlorare Record ID}='${playerId}')`
+      );
     }
 
     if (season) {
@@ -88,6 +90,8 @@ export default async function handler(req, res) {
       "Bett",
       "Spelare",
       "Förlorare",
+      "Spelare Record ID",
+      "Förlorare Record ID",
       "Datum",
       "Utfall",
       "Beskrivning",
@@ -113,9 +117,7 @@ export default async function handler(req, res) {
       };
     });
 
-    bets.sort((a, b) => {
-      return new Date(b.datum || 0) - new Date(a.datum || 0);
-    });
+    bets.sort((a, b) => new Date(b.datum || 0) - new Date(a.datum || 0));
 
     return res.status(200).json({
       ok: true,
