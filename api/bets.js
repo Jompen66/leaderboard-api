@@ -103,18 +103,20 @@ export default async function handler(req, res) {
     const bets = records.map((record) => {
       const f = record.fields || {};
 
-      return {
-        airtableRecordId: record.id,
-        recordId: first(f["RecordID"]) || record.id,
-        bett: first(f["Bett"]) || "",
-        spelare: first(f["Spelare"]) || "",
-        forlorare: first(f["Förlorare"]) || "",
-        datum: first(f["Datum"]) || "",
-        utfall: first(f["Utfall"]) || "",
-        beskrivning: first(f["Beskrivning"]) || "",
-        sasong: first(f["Säsong"]) || "",
-        reglerad: !!first(f["Reglerad"])
-      };
+     return {
+  airtableRecordId: record.id,
+  recordId: first(f["RecordID"]) || record.id,
+  bett: first(f["Bett"]) || "",
+  spelare: first(f["Spelare"]) || "",
+  forlorare: first(f["Förlorare"]) || "",
+  spelareRecordId: first(f["Spelare Record Id"]) || "",
+  forlorareRecordId: first(f["Förlorare Record Id"]) || "",
+  datum: first(f["Datum"]) || "",
+  utfall: first(f["Utfall"]) || "",
+  beskrivning: first(f["Beskrivning"]) || "",
+  sasong: first(f["Säsong"]) || "",
+  reglerad: !!first(f["Reglerad"])
+};
     });
 
     bets.sort((a, b) => new Date(b.datum || 0) - new Date(a.datum || 0));
