@@ -53,8 +53,9 @@ async function fetchAllRecords(tableId, filterFormula = "", fields = []) {
   return allRecords;
 }
 
-function first(value) {
-  return Array.isArray(value) ? value[0] : value;
+function val(value) {
+  if (Array.isArray(value)) return value[0] || "";
+  return value || "";
 }
 
 export default async function handler(req, res) {
@@ -103,20 +104,20 @@ export default async function handler(req, res) {
     const bets = records.map((record) => {
       const f = record.fields || {};
 
-     return {
-  airtableRecordId: record.id,
-  recordId: first(f["RecordID"]) || record.id,
-  bett: first(f["Bett"]) || "",
-  spelare: first(f["Spelare"]) || "",
-  forlorare: first(f["Förlorare"]) || "",
-  spelareRecordId: first(f["Spelare Record Id"]) || "",
-  forlorareRecordId: first(f["Förlorare Record Id"]) || "",
-  datum: first(f["Datum"]) || "",
-  utfall: first(f["Utfall"]) || "",
-  beskrivning: first(f["Beskrivning"]) || "",
-  sasong: first(f["Säsong"]) || "",
-  reglerad: !!first(f["Reglerad"])
-};
+      return {
+        airtableRecordId: record.id,
+        recordId: val(f["RecordID"]) || record.id,
+        bett: val(f["Bett"]),
+        spelare: val(f["Spelare"]),
+        forlorare: val(f["Förlorare"]),
+        spelareRecordId: val(f["Spelare Record Id"]),
+        forlorareRecordId: val(f["Förlorare Record Id"]),
+        datum: val(f["Datum"]),
+        utfall: val(f["Utfall"]),
+        beskrivning: val(f["Beskrivning"]),
+        sasong: val(f["Säsong"]),
+        reglerad: Boolean(f["Reglerad"])
+      };
     });
 
     bets.sort((a, b) => new Date(b.datum || 0) - new Date(a.datum || 0));
