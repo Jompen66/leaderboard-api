@@ -65,6 +65,12 @@ export default async function handler(req, res) {
       });
     }
 
+    if (forlorareRecordId && forlorareRecordId === spelareRecordId) {
+      return res.status(400).json({
+        error: "Winner and loser cannot be the same player"
+      });
+    }
+
     const fields = {
       "Bett": bett || beskrivning,
       "Spelare": [spelareRecordId],
