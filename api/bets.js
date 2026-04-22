@@ -87,6 +87,7 @@ export default async function handler(req, res) {
     const records = await fetchAllRecords(BETS_TABLE_ID, filterFormula, [
       "Bett",
       "Spelare",
+      "Förlorare",
       "Datum",
       "Utfall",
       "Beskrivning",
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
         recordId: first(f["RecordID"]) || record.id,
         bett: first(f["Bett"]) || "",
         spelare: first(f["Spelare"]) || "",
+        forlorare: first(f["Förlorare"]) || "",
         datum: first(f["Datum"]) || "",
         utfall: first(f["Utfall"]) || "",
         beskrivning: first(f["Beskrivning"]) || "",
