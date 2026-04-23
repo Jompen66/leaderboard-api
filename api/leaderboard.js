@@ -29,14 +29,15 @@ export default async function handler(req, res) {
 
   try {
     const airtableUrl =
-      `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}` +
-      `?fields[]=Spelare` +
-      `&fields[]=Totalpoäng` +
-      `&fields[]=Poäng Sammandrag` +
-      `&fields[]=Bonuspoäng` +
-      `&fields[]=Matchpoäng Total` +
-      `&fields[]=Antal Sammandrag` +
-      `&fields[]=Profilbild`;
+  `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}` +
+  `?fields[]=Spelare` +
+  `&fields[]=Totalpoäng` +
+  `&fields[]=Poäng Sammandrag` +
+  `&fields[]=Bonuspoäng` +
+  `&fields[]=Matchpoäng Total` +
+  `&fields[]=Antal Sammandrag` +
+  `&fields[]=Profilbild` +
+  `&fields[]=Historiska totalvinster`; 
 
     const airtableRes = await fetch(airtableUrl, {
       method: "GET",
