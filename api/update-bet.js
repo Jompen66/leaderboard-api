@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const BASE_ID = "appPVgKKVrm0scfIi";
-  const TABLE_ID = "DIN_BET_TABELL_ID"; // 👈 ändra denna
+  const TABLE_ID = "tblNxsTdymYZJU9Qj"; // 👈 ändra denna
 
   try {
     const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}/${betId}`;
