@@ -9,12 +9,117 @@ function setCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+function first(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function numberValue(value) {
+  const n = Number(String(value ?? "").replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isTruthy(value) {
+  if (value === true) return true;
+
+  if (Array.isArray(value)) {
+    return value.some(isTruthy);
+  }
+
+  if (typeof value === "string") {
+    const text = value.toLowerCase();
+    return (
+      text === "true" ||
+      text === "1" ||
+      text === "yes" ||
+      text === "ja" ||
+      text.includes("signatur")
+    );
+  }
+
+  return false;
+}
+
+function pointsForPlace(place) {
+  if (place === 1) return 26;
+  if (place === 2) return 23;
+  if (place === 3) return 20;
+  if (place === 4) return 18;
+  if (place === 5) return 16;
+  if (place === 6) return 14;
+  if (place === 7) return 12;
+  if (place === 8) return 10;
+  if (place >= 9 && place <= 12) return 8;
+  if (place === 13) return 5;
+  if (place === 14) return 3;
+  return 1;
+}
+
+function calculateEventPoints(results) {
+  if (!results.length) return [];
+
+  const format = results[0].spelform || "";
+  const lowerIsBetter = format.toLowerCase().includes("slag");
+
+  const sorted = [...results].sort((a, b) => {
+    const scoreA = numberValue(a.score);
+    const scoreB = numberValue(b.score);
+
+    return lowerIsBetter ? scoreA - scoreB : scoreB - scoreA;
+  });
+
+  const calculated = [];
+  let index = 0;
+
+  while (index < sorted.length) {
+    const currentScore = numberValue(sorted[index].score);
+    const tieGroup = [sorted[index]];
+
+    let next = index + 1;
+
+    while (
+      next < sorted.length &&
+      numberValue(sorted[next].score) === currentScore
+    ) {
+      tieGroup.push(sorted[next]);
+      next++;
+    }
+
+    const startPlace = index + 1;
+    const endPlace = index + tieGroup.length;
+
+    let totalBasePoints = 0;
+
+    for (let place = startPlace; place <= endPlace; place++) {
+      totalBasePoints += pointsForPlace(place);
+    }
+
+    const basePoints = totalBasePoints / tieGroup.length;
+
+    for (const row of tieGroup) {
+      const signaturbonus = isTruthy(row.eventSignatur) ? 5 : 0;
+
+      calculated.push({
+        ...row,
+        placering: startPlace,
+        baspoang: basePoints,
+        signaturbonus,
+        poangSammandrag: basePoints + signaturbonus,
+      });
+    }
+
+    index = next;
+  }
+
+  return calculated;
+}
+
 async function fetchAllRecords(tableId, filterFormula = "") {
   let allRecords = [];
   let offset = null;
 
   do {
     const params = new URLSearchParams();
+
     params.append("cellFormat", "string");
     params.append("timeZone", "Europe/Stockholm");
     params.append("userLocale", "sv");
@@ -23,11 +128,21 @@ async function fetchAllRecords(tableId, filterFormula = "") {
       params.append("filterByFormula", filterFormula);
     }
 
+    params.append("fields[]", "Event");
+    params.append("fields[]", "Event Record ID");
+    params.append("fields[]", "Spelare");
+    params.append("fields[]", "Score");
+    params.append("fields[]", "Spelform");
+    params.append("fields[]", "EventSignatur");
+    params.append("fields[]", "Bana (från Event)");
+
     if (offset) {
       params.append("offset", offset);
     }
 
-    const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(tableId)}?${params.toString()}`;
+    const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+      tableId
+    )}?${params.toString()}`;
 
     const response = await fetch(url, {
       headers: {
@@ -49,10 +164,6 @@ async function fetchAllRecords(tableId, filterFormula = "") {
   return allRecords;
 }
 
-function first(value) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 export default async function handler(req, res) {
   setCorsHeaders(res);
 
@@ -64,6 +175,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  if (!AIRTABLE_API_KEY) {
+    return res.status(500).json({
+      error: "Missing AIRTABLE_API_KEY",
+    });
+  }
+
   try {
     const { eventId } = req.query;
 
@@ -72,34 +189,44 @@ export default async function handler(req, res) {
     }
 
     const filterFormula = `{Event Record ID}='${eventId}'`;
-    const records = await fetchAllRecords(SAMMANDRAG_RESULTAT_TABLE_ID, filterFormula);
+    const records = await fetchAllRecords(
+      SAMMANDRAG_RESULTAT_TABLE_ID,
+      filterFormula
+    );
 
-    const results = records.map((record) => {
-      const f = record.fields || {};
+    const rawResults = records
+      .map((record) => {
+        const f = record.fields || {};
 
-      return {
-        airtableRecordId: record.id,
-        event: first(f["Event"]),
-        spelare: first(f["Spelare"]) || "",
-        spelform: first(f["Spelform"]) || "",
-        placering: first(f["Placering"]),
-        score: first(f["Score"]),
-        poangSammandrag: first(f["Poäng Sammandrag"]),
-        bana: first(f["Bana (från Event)"]) || "",
-      };
-    });
+        return {
+          airtableRecordId: record.id,
+          event: first(f["Event"]),
+          spelare: first(f["Spelare"]) || "",
+          spelform: first(f["Spelform"]) || "",
+          score: first(f["Score"]),
+          eventSignatur: f["EventSignatur"],
+          bana: first(f["Bana (från Event)"]) || "",
+        };
+      })
+      .filter(
+        (row) =>
+          row.spelare &&
+          row.score !== null &&
+          row.score !== undefined &&
+          row.score !== ""
+      );
 
-    // 🔥 NY SORTERING (RÄTT LOGIK)
+    const results = calculateEventPoints(rawResults);
+
     results.sort((a, b) => {
-      const pa = Number(a.poangSammandrag ?? -1);
-      const pb = Number(b.poangSammandrag ?? -1);
+      const pa = numberValue(a.poangSammandrag);
+      const pb = numberValue(b.poangSammandrag);
 
-      // högst poäng först
       if (pb !== pa) return pb - pa;
 
-      // tie-break: lägst placering först
-      const pla = Number(a.placering ?? 999);
-      const plb = Number(b.placering ?? 999);
+      const pla = numberValue(a.placering || 999);
+      const plb = numberValue(b.placering || 999);
+
       return pla - plb;
     });
 
@@ -110,6 +237,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("sammandrag-resultat error:", error);
+
     return res.status(500).json({
       error: "Internal server error",
       details: error.message,
