@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const BASE_ID = "appPVgKKVrm0scfIi";
 
   const PLAYERS_TABLE_ID = "tblQUvfLh6unvSVWW";
-  const SAMMANDRAG_TABLE = "SammandragResultat";
+  const SAMMANDRAG_TABLE = "tblOQQYoV7eksJQWF";
 
   if (!AIRTABLE_API_KEY) {
     return res.status(500).json({
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   }
 
   function numberValue(value) {
-    const n = Number(value);
+    const n = Number(String(value ?? "").replace(",", "."));
     return Number.isFinite(n) ? n : 0;
   }
 
@@ -60,6 +60,10 @@ export default async function handler(req, res) {
     return false;
   }
 
+  function first(value) {
+    return Array.isArray(value) ? value[0] : value;
+  }
+
   function calculateEventPoints(results) {
     if (!results.length) return [];
 
@@ -67,8 +71,8 @@ export default async function handler(req, res) {
     const lowerIsBetter = format.toLowerCase().includes("slag");
 
     const sorted = [...results].sort((a, b) => {
-      const scoreA = Number(a.Resultat);
-      const scoreB = Number(b.Resultat);
+      const scoreA = numberValue(a.Resultat);
+      const scoreB = numberValue(b.Resultat);
 
       return lowerIsBetter ? scoreA - scoreB : scoreB - scoreA;
     });
@@ -77,14 +81,14 @@ export default async function handler(req, res) {
     let index = 0;
 
     while (index < sorted.length) {
-      const currentScore = Number(sorted[index].Resultat);
+      const currentScore = numberValue(sorted[index].Resultat);
       const tieGroup = [sorted[index]];
 
       let next = index + 1;
 
       while (
         next < sorted.length &&
-        Number(sorted[next].Resultat) === currentScore
+        numberValue(sorted[next].Resultat) === currentScore
       ) {
         tieGroup.push(sorted[next]);
         next++;
@@ -173,7 +177,7 @@ export default async function handler(req, res) {
     ]);
 
     const sammandragResultat = await fetchAllRecords(SAMMANDRAG_TABLE, [
-      "Spelar",
+      "Spelare",
       "Event",
       "Score",
       "Spelform",
@@ -186,12 +190,10 @@ export default async function handler(req, res) {
 
         return {
           id: record.id,
-          Spelare: fields["Spelar"]?.[0],
-          Sammandrag: fields["Event"]?.[0],
+          Spelare: first(fields["Spelare"]),
+          Sammandrag: first(fields["Event"]),
           Resultat: fields["Score"],
-          Spelform: Array.isArray(fields["Spelform"])
-            ? fields["Spelform"][0]
-            : fields["Spelform"],
+          Spelform: first(fields["Spelform"]) || "",
           EventSignatur: fields["EventSignatur"],
         };
       })
