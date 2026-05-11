@@ -182,6 +182,9 @@ export default async function handler(req, res) {
       "Score",
       "Spelform",
       "EventSignatur",
+      "Vinflaskor",
+      "Närmast hål",
+      "Längsta drive",
     ]);
 
     const resultRows = sammandragResultat
@@ -195,6 +198,9 @@ export default async function handler(req, res) {
           Resultat: fields["Score"],
           Spelform: first(fields["Spelform"]) || "",
           EventSignatur: fields["EventSignatur"],
+          Vinflaskor: numberValue(fields["Vinflaskor"]),
+          NarmastHal: numberValue(fields["Närmast hål"]),
+          LangstaDrive: numberValue(fields["Längsta drive"]),
         };
       })
       .filter(
@@ -231,11 +237,17 @@ export default async function handler(req, res) {
         pointsByPlayer[row.Spelare] = {
           poangSammandrag: 0,
           antalSammandrag: 0,
+          vinflaskor: 0,
+          narmastHal: 0,
+          langstaDrive: 0,
         };
       }
 
       pointsByPlayer[row.Spelare].poangSammandrag += row.Poäng;
       pointsByPlayer[row.Spelare].antalSammandrag += 1;
+      pointsByPlayer[row.Spelare].vinflaskor += numberValue(row.Vinflaskor);
+      pointsByPlayer[row.Spelare].narmastHal += numberValue(row.NarmastHal);
+      pointsByPlayer[row.Spelare].langstaDrive += numberValue(row.LangstaDrive);
     }
 
     const leaderboard = players.map((player) => {
@@ -244,6 +256,9 @@ export default async function handler(req, res) {
       const sammandragStats = pointsByPlayer[player.id] || {
         poangSammandrag: 0,
         antalSammandrag: 0,
+        vinflaskor: 0,
+        narmastHal: 0,
+        langstaDrive: 0,
       };
 
       const bonuspoang = numberValue(fields["Bonuspoäng"]);
@@ -261,6 +276,10 @@ export default async function handler(req, res) {
           Bonuspoäng: bonuspoang,
           "Matchpoäng Total": matchpoang,
           Totalpoäng: totalpoang,
+
+          "Vinflaskor Totalt": sammandragStats.vinflaskor,
+          "Närmast hål Totalt": sammandragStats.narmastHal,
+          "Längsta drive Totalt": sammandragStats.langstaDrive,
         },
       };
     });
