@@ -4,26 +4,62 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Cache-Control", "no-store");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const BASE_ID = "appPVgKKVrm0scfIi";
-  const TABLE_ID = "tblvawwsDpRhpRBDp";
+
+  const MATCHDELTAGARE_TABLE_ID = "tblvawwsDpRhpRBDp";
+  const PLAYERS_TABLE_ID = "tblQUvfLh6unvSVWW";
 
   if (!AIRTABLE_API_KEY) {
-    return res.status(500).json({
-      error: "Missing AIRTABLE_API_KEY",
-    });
+    return res.status(500).json({ error: "Missing AIRTABLE_API_KEY" });
   }
 
-  function first(value) {
-    return Array.isArray(value) ? value[0] : value;
+  async function fetchAllRecords(tableId, fields = [], filterFormula = "") {
+    let allRecords = [];
+    let offset = "";
+
+    do {
+      const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${tableId}`);
+
+      if (filterFormula) url.searchParams.set("filterByFormula", filterFormula);
+      if (offset) url.searchParams.set("offset", offset);
+
+      fields.forEach((field) => {
+        url.searchParams.append("fields[]", field);
+      });
+
+      const airtableRes = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const rawText = await airtableRes.text();
+
+      if (!airtableRes.ok) {
+        throw new Error(`Airtable error ${airtableRes.status}: ${rawText}`);
+      }
+
+      const data = JSON.parse(rawText);
+      allRecords = allRecords.concat(data.records || []);
+      offset = data.offset || "";
+    } while (offset);
+
+    return allRecords;
+  }
+
+  function mapIdsToNames(value, playerNameById) {
+    if (!value) return value;
+
+    if (Array.isArray(value)) {
+      return value.map((item) => playerNameById[item] || item);
+    }
+
+    return playerNameById[value] || value;
   }
 
   try {
@@ -31,21 +67,18 @@ export default async function handler(req, res) {
 
     const filters = [];
 
-    if (playerId) {
-      filters.push(`FIND('${playerId}', ARRAYJOIN({Spelare}))`);
-    }
+    if (playerId) filters.push(`FIND('${playerId}', ARRAYJOIN({Spelare}))`);
+    if (status) filters.push(`{Status}='${status}'`);
+    if (matchId) filters.push(`{Match Id}='${matchId}'`);
 
-    if (status) {
-      filters.push(`{Status}='${status}'`);
-    }
+    const formula = filters.length ? `AND(${filters.join(",")})` : "";
 
-    if (matchId) {
-      filters.push(`{Match Id}='${matchId}'`);
-    }
+    const players = await fetchAllRecords(PLAYERS_TABLE_ID, ["Spelare"]);
 
-    const formula = filters.length
-      ? `AND(${filters.join(",")})`
-      : "";
+    const playerNameById = {};
+    players.forEach((player) => {
+      playerNameById[player.id] = player.fields?.Spelare || player.id;
+    });
 
     const fields = [
       "Match Id",
@@ -64,92 +97,31 @@ export default async function handler(req, res) {
       "Sida B namn",
     ];
 
-    let allRecords = [];
-    let offset = "";
+    const allRecords = await fetchAllRecords(
+      MATCHDELTAGARE_TABLE_ID,
+      fields,
+      formula
+    );
 
-    do {
-      const url = new URL(
-        `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`
-      );
-
-      if (formula) {
-        url.searchParams.set("filterByFormula", formula);
-      }
-
-      url.searchParams.set("cellFormat", "string");
-      url.searchParams.set("timeZone", "Europe/Stockholm");
-      url.searchParams.set("userLocale", "sv");
-
-      fields.forEach((field) => {
-        url.searchParams.append("fields[]", field);
-      });
-
-      if (offset) {
-        url.searchParams.set("offset", offset);
-      }
-
-      const airtableRes = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const text = await airtableRes.text();
-
-      if (!airtableRes.ok) {
-        return res.status(500).json({
-          error: "Airtable request failed",
-          details: text,
-        });
-      }
-
-      const data = JSON.parse(text);
-
-      allRecords = allRecords.concat(data.records || []);
-      offset = data.offset || "";
-    } while (offset);
-
-    const cleanedRecords = allRecords.map((record) => {
+    const fixedRecords = allRecords.map((record) => {
       const f = record.fields || {};
 
       return {
-        id: record.id,
+        ...record,
         fields: {
           ...f,
-
-          "Match Id": first(f["Match Id"]),
-          "Spelare": first(f["Spelare"]),
-          "Sida": first(f["Sida"]),
-          "Status": first(f["Status"]),
-          "Deadline": first(f["Deadline"]),
-          "Speldatum": first(f["Speldatum"]),
-          "Bana": first(f["Bana"]),
-          "Resultattext": first(f["Resultattext"]),
-          "Resultattyp": first(f["Resultattyp"]),
-          "Matchtyp": first(f["Matchtyp"]),
-          "Matchvisning": first(f["Matchvisning"]),
-          "Primärfält": first(f["Primärfält"]),
-
-          // 🔥 DETTA FIXAR recXXXX-PROBLEMET
-          "Sida A namn": first(f["Sida A namn"]) || "",
-          "Sida B namn": first(f["Sida B namn"]) || "",
+          "Sida A namn": mapIdsToNames(f["Sida A namn"], playerNameById),
+          "Sida B namn": mapIdsToNames(f["Sida B namn"], playerNameById),
         },
       };
     });
 
-    cleanedRecords.sort((a, b) => {
-      const da = a.fields?.Deadline || "";
-      const db = b.fields?.Deadline || "";
-      return da.localeCompare(db);
-    });
-
     return res.status(200).json({
-      records: cleanedRecords,
+      records: fixedRecords,
     });
   } catch (error) {
     return res.status(500).json({
-      error: "Server error",
+      error: "Server error while fetching Matchdeltagare",
       details: error.message,
     });
   }
