@@ -134,8 +134,7 @@ async function fetchAllRecords(tableId, filterFormula = "") {
     params.append("fields[]", "Score");
     params.append("fields[]", "Spelform");
     params.append("fields[]", "EventSignatur");
-    params.append("fields[]", "Bana (från Event)");
-
+  
     if (offset) {
       params.append("offset", offset);
     }
@@ -205,7 +204,7 @@ export default async function handler(req, res) {
           spelform: first(f["Spelform"]) || "",
           score: first(f["Score"]),
           eventSignatur: f["EventSignatur"],
-          bana: first(f["Bana (från Event)"]) || "",
+          bana: "",
         };
       })
       .filter(
