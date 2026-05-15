@@ -2,10 +2,15 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+  res.setHeader(
+    "Cache-Control",
+    "public, s-maxage=60, stale-while-revalidate=120"
+  );
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const BASE_ID = "appPVgKKVrm0scfIi";
@@ -32,6 +37,13 @@ export default async function handler(req, res) {
     if (place === 13) return 5;
     if (place === 14) return 3;
     return 1;
+  }
+
+  function bonusForEvents(count) {
+    if (count >= 6) return 18;
+    if (count >= 5) return 6;
+    if (count >= 4) return 2;
+    return 0;
   }
 
   function numberValue(value) {
@@ -170,7 +182,6 @@ export default async function handler(req, res) {
   try {
     const players = await fetchAllRecords(PLAYERS_TABLE_ID, [
       "Spelare",
-      "Bonuspoäng",
       "Matchpoäng Total",
       "Profilbild",
       "Historiska totalvinster",
@@ -261,7 +272,8 @@ export default async function handler(req, res) {
         langstaDrive: 0,
       };
 
-      const bonuspoang = numberValue(fields["Bonuspoäng"]);
+      const antalSammandrag = sammandragStats.antalSammandrag;
+      const bonuspoang = bonusForEvents(antalSammandrag);
       const matchpoang = numberValue(fields["Matchpoäng Total"]);
       const poangSammandrag = sammandragStats.poangSammandrag;
       const totalpoang = poangSammandrag + bonuspoang + matchpoang;
@@ -271,8 +283,9 @@ export default async function handler(req, res) {
         createdTime: player.createdTime,
         fields: {
           ...fields,
+
           "Poäng Sammandrag": poangSammandrag,
-          "Antal Sammandrag": sammandragStats.antalSammandrag,
+          "Antal Sammandrag": antalSammandrag,
           Bonuspoäng: bonuspoang,
           "Matchpoäng Total": matchpoang,
           Totalpoäng: totalpoang,
